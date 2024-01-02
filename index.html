@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>绿邮开发板 - 控制指令调试器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #eaeaea;
+            color: #333;
+        }
+        .container {
+            width: 60%;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        h1, p {
+            text-align: center;
+            color: #4a4a4a;
+        }
+        label {
+            display: block;
+            margin-top: 20px;
+            color: #555;
+        }
+        input[type=text], input[type=number], select, button {
+            width: 100%;
+            padding: 12px 20px;
+            margin-top: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: default;
+        }
+        .hidden {
+            display: none;
+        }
+        .slotOption, .wifiOption {
+            display: inline-block;
+        }
+        .slotOption:not(:first-child), .wifiOption:not(:first-child) {
+            margin-inline-start: 30px;
+        }
+    </style>
+    <script>
+        // 加载时，尝试从localStorage恢复配置
+        window.onload = function() {
+            document.getElementById('baseUrl').value = localStorage.getItem('baseUrl') || '192.168.100.8:38585';
+            document.getElementById('token').value = localStorage.getItem('token') || '3f4bffa77257d243875d0a5a80635934';
+            updateCommandOptions();
+        };
+
+        // 保存配置到localStorage
+        function saveConfig() {
+            var baseUrl = document.getElementById('baseUrl').value;
+            var token = document.getElementById('token').value;
+            localStorage.setItem('baseUrl', baseUrl);
+            localStorage.setItem('token', token);
+        }
+
+        // 更新命令选项相关UI
+        function updateCommandOptions() {
+            var command = document.getElementById('command').value;
+
+            var restartTimeField = document.getElementById('restartTime');
+            var restartTimeLabel = document.getElementById('restartTimeLabel');
+            restartTimeField.classList.add('hidden');
+            restartTimeLabel.classList.add('hidden');
+            
+            if (command === 'dailyrst') {
+                restartTimeField.classList.remove('hidden');
+                restartTimeLabel.classList.remove('hidden');
+            }
+
+            var slotOptions = document.getElementById('slotOptions');
+            var slotLabel = document.getElementById('slotLabel');
+            slotOptions.classList.add('hidden');
+            slotLabel.classList.add('hidden');
+
+            if (command === 'slotoff' || command === 'slotrst') {
+                slotOptions.classList.remove('hidden');
+                slotLabel.classList.remove('hidden');
+            }
+
+            var wifiOptions = document.getElementById('wifiOptions');
+            var wifiLabel = document.getElementById('wifiLabel');
+            wifiOptions.classList.add('hidden');
+            wifiLabel.classList.add('hidden');
+
+            if (command === 'wf') {
+                wifiOptions.classList.remove('hidden');
+                wifiLabel.classList.remove('hidden');
+            }
+
+            var wifiSSIDField = document.getElementById('wifiSSID');
+            var wifiSSIDLabel = document.getElementById('wifiSSIDLabel');
+            var wifiPasswordField = document.getElementById('wifiPassword');
+            var wifiPasswordLabel = document.getElementById('wifiPasswordLabel');
+            wifiSSIDField.classList.add('hidden');
+            wifiSSIDLabel.classList.add('hidden');
+            wifiPasswordField.classList.add('hidden');
+            wifiPasswordLabel.classList.add('hidden');
+
+            if (command === 'addwf') {
+                wifiSSIDField.classList.remove('hidden');
+                wifiSSIDLabel.classList.remove('hidden');
+                wifiPasswordField.classList.remove('hidden');
+                wifiPasswordLabel.classList.remove('hidden');
+            }
+
+            if (command === 'delwf') {
+                wifiSSIDField.classList.remove('hidden');
+                wifiSSIDLabel.classList.remove('hidden');
+            }
+
+            var smsReceiverField = document.getElementById('smsReceiver');
+            var smsReceiverLabel = document.getElementById('smsReceiverLabel');
+            var smsContentField = document.getElementById('smsContent');
+            var smsContentLabel = document.getElementById('smsContentLabel');
+            var smsTidField = document.getElementById('smsTid');
+            var smsTidLabel = document.getElementById('smsTidLabel');
+            smsReceiverField.classList.add('hidden');
+            smsReceiverLabel.classList.add('hidden');
+            smsContentField.classList.add('hidden');
+            smsContentLabel.classList.add('hidden');
+            smsTidField.classList.add('hidden');
+            smsTidLabel.classList.add('hidden');
+
+            if (command === 'sendsms') {
+                slotOptions.classList.remove('hidden');
+                slotLabel.classList.remove('hidden');
+                smsReceiverField.classList.remove('hidden');
+                smsReceiverLabel.classList.remove('hidden');
+                smsContentField.classList.remove('hidden');
+                smsContentLabel.classList.remove('hidden');
+                smsTidField.classList.remove('hidden');
+                smsTidLabel.classList.remove('hidden');
+                smsTidField.value = generateRandomString(16);
+            }
+
+            var otaTimeField = document.getElementById('otaTime');
+            var otaTimeLabel = document.getElementById('otaTimeLabel');
+            otaTimeField.classList.add('hidden');
+            otaTimeLabel.classList.add('hidden');
+
+            if (command === 'dailyota') {
+                otaTimeField.classList.remove('hidden');
+                otaTimeLabel.classList.remove('hidden');
+            }
+
+            checkRequiredFields();
+        }
+
+        // 执行控制指令
+        function sendCommand() {
+            var baseUrl = document.getElementById('baseUrl').value;
+            var token = document.getElementById('token').value;
+            var command = document.getElementById('command').value;
+            var url = `http://${baseUrl}/ctrl?token=${token}&cmd=${command}`;
+
+            if (command === 'dailyrst') {
+                var restartTime = document.getElementById('restartTime').value;
+                url += `&p1=${restartTime}`;
+            }
+
+            if (command === 'slotoff' || command === 'slotrst') {
+                var selectedSlot = document.querySelector('input[name="slot"]:checked');
+                if (selectedSlot) {
+                    url += `&p1=${selectedSlot.value}`;
+                }
+            }
+
+            if (command === 'wf') {
+                var selectedWifiStatus = document.querySelector('input[name="wifi"]:checked');
+                if (selectedWifiStatus) {
+                    url += `&p1=${selectedWifiStatus.value}`;
+                }
+            }
+
+            if (command === 'addwf') {
+                var wifiSSID = document.getElementById('wifiSSID').value;
+                var wifiPassword = document.getElementById('wifiPassword').value;
+                url += `&p1=${encodeURIComponent(wifiSSID)}&p2=${encodeURIComponent(wifiPassword)}`;
+            }
+
+            if (command === 'delwf') {
+                var wifiSSID = document.getElementById('wifiSSID').value;
+                url += `&p1=${encodeURIComponent(wifiSSID)}`;
+            }
+
+            if (command === 'sendsms') {
+                var selectedSlot = document.querySelector('input[name="slot"]:checked').value;
+                var smsReceiver = document.getElementById('smsReceiver').value;
+                var smsContent = document.getElementById('smsContent').value;
+                var smsTid = document.getElementById('smsTid').value;
+
+                url += `&p1=${selectedSlot}&p2=${encodeURIComponent(smsReceiver)}&p3=${encodeURIComponent(smsContent)}&tid=${smsTid}`;
+
+                document.getElementById('smsTid').value = generateRandomString(16);
+            }
+
+            if (command === 'dailyota') {
+                var otaTime = document.getElementById('otaTime').value;
+                url += `&p1=${otaTime}`;
+            }
+
+            window.open(url, '_blank');
+        }
+
+        // 检查是否填写了必要信息
+        function checkRequiredFields() {
+            var baseUrl = document.getElementById('baseUrl').value;
+            var token = document.getElementById('token').value;
+            var command = document.getElementById('command').value;
+
+            var isCommandValid = command && command !== 'dailyrst' && command !== 'slotoff' && command !== 'slotrst' && command !== 'addwf' && command !== 'delwf' && command !== 'sendsms' && command !== 'dailyota';
+            
+            var isDailyrstSelected = command === 'dailyrst' && document.getElementById('reStartTime').value;
+            var isSlotSelected = (command === 'slotoff' || command === 'slotrst') && document.querySelector('input[name="slot"]:checked');
+
+            var isWifiSelected = command === 'wf' && document.querySelector('input[name="wifi"]:checked');
+
+            var isAddwfSelected = command === 'addwf' && document.getElementById('wifiSSID').value.trim() !== '' && document.getElementById('wifiPassword').value.trim() !== '';
+            var isDelwfSelected = command === 'delwf' && document.getElementById('wifiSSID').value.trim() !== '';
+
+            var isSendsmsSelected = command === 'sendsms' && document.querySelector('input[name="slot"]:checked') && document.getElementById('smsReceiver').value.trim() !== '' && document.getElementById('smsContent').value.trim() !== '' && document.getElementById('smsTid').value.trim() !== '';
+
+            var isDailyotaSelected = command === 'dailyota' && document.getElementById('otaTime').value.trim() !== '';
+
+            document.getElementById('sendBtn').disabled = !(baseUrl && token && (isCommandValid || isDailyrstSelected || isSlotSelected || isWifiSelected || isAddwfSelected || isDelwfSelected || isSendsmsSelected || isDailyotaSelected));
+        }
+
+        // 生成16位随机字符串
+        function generateRandomString(length) {
+            var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var result = '';
+            var charactersLength = characters.length;
+            for (var i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>绿邮开发板 - 控制指令调试器</h1>
+        <p><a href="https://github.com/jacob2826/lvyou_control_debugger" target="_blank">项目地址</a> v1.0</p>
+        <p></p>
+        <label for="baseUrl">开发板地址:</label>
+        <input type="text" id="baseUrl" name="baseUrl" onchange="saveConfig(); checkRequiredFields();">
+        <label for="token">token:</label>
+        <input type="text" id="token" name="token" onchange="saveConfig(); checkRequiredFields();">
+        <label for="command">控制指令:</label>
+        <select id="command" name="command" onchange="updateCommandOptions();">
+            <option value="">请选择指令</option>
+            <optgroup label="设备控制指令">
+                <option value="stat">stat - 获取开发板状态</option>
+                <option value="restart">restart - 重启开发板</option>
+                <option value="dailyrst">dailyrst - 设置每日重启时间</option>
+            </optgroup>
+            <optgroup label="卡槽控制指令">
+                <option value="slotoff">slotoff - 指定卡槽关机</option>
+                <option value="slotrst">slotrst - 指定卡槽重启</option>
+            </optgroup>
+            <optgroup label="WiFi控制指令">
+                <option value="wf">wf - 打开或关闭WiFi</option>
+                <option value="addwf">addwf - 增加WiFi热点信息</option>
+                <option value="delwf">delwf - 删除WiFi热点信息</option>
+            </optgroup>
+            <optgroup label="短信指令">
+                <option value="sendsms">sendsms - 外发短信</option>
+            </optgroup>
+            <optgroup label="OTA升级指令">
+                <option value="dailyota">dailyota - 设置每日OTA升级时间</option>
+                <option value="otanow">otanow - 立即执行OTA升级</option>
+            </optgroup>
+        </select>
+        <label for="restartTime" id="restartTimeLabel" class="hidden">每日重启时间 (0-23):</label>
+        <input type="number" id="restartTime" name="restartTime" min="0" max="23" class="hidden" onchange="checkRequiredFields();">
+        <label for="slotOptions" id="slotLabel" class="hidden">选择卡槽:</label>
+        <div id="slotOptions" class="hidden" style="margin-top: 8px;">
+            <div class="slotOption"><input type="radio" id="slot1" name="slot" value="1" checked> 卡槽1</div>
+            <div class="slotOption"><input type="radio" id="slot2" name="slot" value="2"> 卡槽2</div>
+        </div>
+        <label for="wifiOptions" id="wifiLabel" class="hidden">WiFi状态:</label>
+        <div id="wifiOptions" class="hidden" style="margin-top: 8px;">
+            <div class="wifiOption"><input type="radio" id="wifiOn" name="wifi" value="on" checked> 开启</div>
+            <div class="wifiOption"><input type="radio" id="wifiOff" name="wifi" value="off"> 关闭</div>
+        </div>
+        <label for="wifiSSID" id="wifiSSIDLabel" class="hidden">WiFi热点名:</label>
+        <input type="text" id="wifiSSID" name="wifiSSID" class="hidden" onchange="checkRequiredFields();">
+        <label for="wifiPassword" id="wifiPasswordLabel" class="hidden">WiFi密码:</label>
+        <input type="text" id="wifiPassword" name="wifiPassword" class="hidden" onchange="checkRequiredFields();">
+        <label for="smsReceiver" id="smsReceiverLabel" class="hidden">接收短信号码:</label>
+        <input type="text" id="smsReceiver" name="smsReceiver" class="hidden" value="10001" onchange="checkRequiredFields();">
+        <label for="smsContent" id="smsContentLabel" class="hidden">短信内容:</label>
+        <input type="text" id="smsContent" name="smsContent" class="hidden" value="查话费" onchange="checkRequiredFields();">
+        <label for="smsTid" id="smsTidLabel" class="hidden">唯一标识(tid):</label>
+        <input type="text" id="smsTid" name="smsTid" class="hidden" onchange="checkRequiredFields();">
+        <label for="otaTime" id="otaTimeLabel" class="hidden">每日OTA升级时间 (0-23):</label>
+        <input type="number" id="otaTime" name="otaTime" min="0" max="23" class="hidden" onchange="checkRequiredFields();">
+
+        <button id="sendBtn" onclick="sendCommand()" disabled>执行指令</button>
+    </div>
+</body>
+</html>
