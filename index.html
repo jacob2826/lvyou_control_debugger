@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>绿邮开发板 - 控制指令调试器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -57,6 +58,33 @@
         }
         .slotOption:not(:first-child), .wifiOption:not(:first-child) {
             margin-inline-start: 30px;
+        }
+
+        /* 媒体查询，适用于小屏幕设备 */
+        @media screen and (max-width: 600px) {
+            .container {
+                width: auto;
+                margin: 10px;
+                padding: 15px;
+            }
+
+            input[type=text], input[type=number], select, button {
+                font-size: 18px;
+                padding: 15px 20px;
+            }
+
+            label {
+                font-size: 16px;
+                margin-top: 15px;
+            }
+
+            button {
+                padding: 15px 20px;
+            }
+
+            .slotOption, .wifiOption {
+                margin-inline-start: 20px;
+            }
         }
     </style>
     <script>
