@@ -260,7 +260,7 @@
 
             var isCommandValid = command && command !== 'dailyrst' && command !== 'slotoff' && command !== 'slotrst' && command !== 'addwf' && command !== 'delwf' && command !== 'sendsms' && command !== 'dailyota';
             
-            var isDailyrstSelected = command === 'dailyrst' && document.getElementById('reStartTime').value;
+            var isDailyrstSelected = command === 'dailyrst' && document.getElementById('restartTime').value;
             var isSlotSelected = (command === 'slotoff' || command === 'slotrst') && document.querySelector('input[name="slot"]:checked');
 
             var isWifiSelected = command === 'wf' && document.querySelector('input[name="wifi"]:checked');
